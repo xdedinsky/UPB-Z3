@@ -4,6 +4,10 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, EqualTo
 from flask_login import login_required, LoginManager, UserMixin, login_user, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
+from wtforms.validators import ValidationError
+import re
+import os
+import hashlib          
 
 app = Flask(__name__)
 
@@ -28,7 +32,8 @@ class User(db.Model, UserMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(80), unique=False, nullable=False)
+    password = db.Column(db.String(64), unique=False, nullable=False)
+    salt = db.Column(db.LargeBinary(16), nullable=False)
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -37,13 +42,30 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
     
-with app.app_context():
-    db.create_all()
+#Odkomentuj, ak chcete vytvorit tabulku a uzivatela
+#with app.app_context():
+#    db.create_all()
     
-    test_user = User(username='test', password='test')
-    db.session.add(test_user)
-    db.session.commit()
+#    test_user = User(username='test', password='test')
+#    db.session.add(test_user)
+#    db.session.commit()
 
+#funkcie
+def password_complexity_check(form, field):
+    password = field.data
+    if (len(password) < 10 or 
+        not re.search(r"[A-Z]", password) or 
+        not re.search(r"[a-z]", password) or 
+        not re.search(r"[0-9]", password) or 
+        not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password)):
+        raise ValidationError('Heslo musí obsahovať aspoň 10 znakov, jedno veľké písmeno, jedno malé písmeno, jedno číslo a jeden špeciálny znak.')
+
+def generate_salt():
+    return os.urandom(16)
+
+def hash_password(password, salt):
+    password_salt = password.encode() + salt
+    return hashlib.sha256(password_salt).hexdigest()
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[InputRequired()])
@@ -53,7 +75,7 @@ class LoginForm(FlaskForm):
 
 class RegisterForm(FlaskForm):
     username = StringField('Username', validators=[InputRequired()])
-    password = PasswordField('Password', validators=[InputRequired()])
+    password = PasswordField('Password', validators=[InputRequired(), password_complexity_check])
     confirm_password = PasswordField('Confirm Password', validators=[InputRequired(), EqualTo('password')])
     submit = SubmitField('Register')
 
@@ -72,32 +94,30 @@ def login():
     form = LoginForm()
 
     if form.validate_on_submit():
-        username = form.username.data
-        password = form.password.data
-
-        if username == 'test' and password == 'test':
-            login_user(User.query.filter_by(username=username).first())
-            return redirect(url_for('home'))
+        user = User.query.filter_by(username=form.username.data).first()
+        if user:
+            hashed_input_password = hash_password(form.password.data, user.salt)
+            if hashed_input_password == user.password:
+                login_user(user)
+                return redirect(url_for('home'))
 
     return render_template('login.html', form=form)
 
-@app.route('/register', methods=['GET','POST'])  
+@app.route('/register', methods=['GET', 'POST'])        
 def register():
-    '''
-        TODO: doimplementovat
-    '''
-
     form = RegisterForm()
-
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
+        salt = generate_salt()
+        hashed_password = hash_password(password, salt)
         
-        if username == 'test' and password == 'test':
-            return redirect(url_for('login'))
-
+        new_user = User(username=username, password=hashed_password, salt=salt)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        return redirect(url_for('login'))
     return render_template('register.html', form=form)
-
 
 @login_required
 @app.route('/logout', methods=['POST'])
