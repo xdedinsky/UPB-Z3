@@ -1,46 +1,79 @@
-   <!-- templates/register.html -->
-   <!DOCTYPE html>
-   <html lang="en">
-   <head>
-       <meta charset="UTF-8">
-       <title>Register</title>
-       <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-   </head>
-   <body>
-       <div class="container">
-           <h1>Register</h1>
-           <form method="POST">
-               {{ form.hidden_tag() }}
-               <p>{{ form.username.label }} {{ form.username(class_="form-control") }}</p>
-               {% if form.username.errors %}
-                   <ul>
-                   {% for error in form.username.errors %}
-                       <li>{{ error }}</li>
-                   {% endfor %}
-                   </ul>
-               {% endif %}
-               
-               <p>{{ form.password.label }} {{ form.password(class_="form-control") }}</p>
-               {% if form.password.errors %}
-                   <ul>
-                   {% for error in form.password.errors %}
-                       <li>{{ error }}</li>
-                   {% endfor %}
-                   </ul>
-               {% endif %}
-               
-               <p>{{ form.confirm_password.label }} {{ form.confirm_password(class_="form-control") }}</p>
-               {% if form.confirm_password.errors %}
-                   <ul>
-                   {% for error in form.confirm_password.errors %}
-                       <li>{{ error }}</li>
-                   {% endfor %}
-                   </ul>
-               {% endif %}
-               
-               <p>{{ form.submit(class_="btn btn-primary") }}</p>
-           </form>
-           <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
-       </div>
-   </body>
-   </html>
+<!-- templates/register.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Register</h1>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            
+            <p>{{ form.username.label }} {{ form.username(class_="form-control") }}</p>
+            {% if form.username.errors %}
+                <ul>
+                {% for error in form.username.errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            
+            <p>{{ form.password.label }} {{ form.password(class_="form-control", id="password") }}</p>
+            {% if form.password.errors %}
+                <ul>
+                {% for error in form.password.errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            
+            <p>{{ form.confirm_password.label }} {{ form.confirm_password(class_="form-control", id="confirm_password") }}</p>
+            {% if form.confirm_password.errors %}
+                <ul>
+                {% for error in form.confirm_password.errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            
+            <p>{{ form.submit(class_="btn btn-primary") }}</p>
+        </form>
+        <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+    </div>
+
+    <!-- Presunutý JavaScript na koniec dokumentu -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('form');
+            const passwordField = document.querySelector('#password');
+            const confirmPasswordField = document.querySelector('#confirm_password');
+            const passwordError = document.createElement('p');
+            passwordError.style.color = 'red';
+            passwordField.after(passwordError);
+
+            function checkPasswordComplexity(password) {
+                const complexityCheck = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{10,}$/;
+                return complexityCheck.test(password);
+            }
+
+            form.addEventListener('submit', function (event) {
+                const password = passwordField.value;
+                const confirmPassword = confirmPasswordField.value;
+
+                if (!checkPasswordComplexity(password)) {
+                    passwordError.textContent = 'Heslo musí obsahovať aspoň 10 znakov, jedno veľké písmeno, jedno malé písmeno, jedno číslo a jeden špeciálny znak.';
+                    event.preventDefault(); // Zastaví odoslanie formulára, ak heslo nespĺňa požiadavky.
+                } else if (password !== confirmPassword) {
+                    passwordError.textContent = 'Heslá sa musia zhodovať.';
+                    event.preventDefault();
+                } else {
+                    passwordError.textContent = ''; // Ak heslo spĺňa požiadavky, neukazuje sa žiadna chyba.
+                }
+            });
+        });
+    </script>
+</body>
+</html>

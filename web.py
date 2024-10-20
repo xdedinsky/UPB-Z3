@@ -43,8 +43,8 @@ def load_user(user_id):
     return User.query.get(int(user_id))
     
 #Odkomentuj, ak chcete vytvorit tabulku a uzivatela
-#with app.app_context():
-#    db.create_all()
+with app.app_context():
+    db.create_all()
     
 #    test_user = User(username='test', password='test')
 #    db.session.add(test_user)
