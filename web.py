@@ -64,8 +64,7 @@ def generate_salt():
     return os.urandom(16)
 
 def hash_password(password, salt):
-    password_salt = password.encode() + salt
-    return hashlib.sha256(password_salt).hexdigest()
+    return hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[InputRequired()])
@@ -115,7 +114,9 @@ def register():
         new_user = User(username=username, password=hashed_password, salt=salt)
         db.session.add(new_user)
         db.session.commit()
-        
+
+        print(f'Nový používateľ zaregistrovaný: {username}')
+
         return redirect(url_for('login'))
     return render_template('register.html', form=form)
 
