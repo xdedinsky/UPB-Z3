@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, flash
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, EqualTo
@@ -84,12 +84,8 @@ class RegisterForm(FlaskForm):
 def home():
     return render_template('home.html', username=current_user.username)
 
-@app.route('/login', methods=['GET','POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    '''
-        TODO: doimplementovat
-    '''
-
     form = LoginForm()
 
     if form.validate_on_submit():
@@ -99,8 +95,12 @@ def login():
             if hashed_input_password == user.password:
                 login_user(user)
                 return redirect(url_for('home'))
+        
+        # Flash error message instead of raising an error
+        flash('Nesprávne prihlasovacie údaje. Skontrolujte, či je používateľské meno a heslo správne.', 'error')
 
     return render_template('login.html', form=form)
+
 
 @app.route('/register', methods=['GET', 'POST'])        
 def register():
