@@ -1,10 +1,11 @@
-from flask import Flask, render_template, redirect, url_for, flash
+from flask import Flask, request, render_template, redirect, url_for, flash
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, EqualTo
 from flask_login import login_required, LoginManager, UserMixin, login_user, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from wtforms.validators import ValidationError
+import requests
 import re
 import os
 import hashlib          
@@ -84,20 +85,37 @@ class RegisterForm(FlaskForm):
 def home():
     return render_template('home.html', username=current_user.username)
 
+app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdwCmcqAAAAAAYaHnmrGy-MlyToQY_dxgDJS3MB'
+app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdwCmcqAAAAAGftjX7zQ1OyH2-w7Lo0KqKc9Fj6'
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
 
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user:
-            hashed_input_password = hash_password(form.password.data, user.salt)
-            if hashed_input_password == user.password:
-                login_user(user)
-                return redirect(url_for('home'))
-        
-        # Flash error message instead of raising an error
-        flash('Nesprávne prihlasovacie údaje. Skontrolujte, či je používateľské meno a heslo správne.', 'error')
+        recaptcha_response = request.form['g-recaptcha-response']
+        secret_key = "6LdwCmcqAAAAAGftjX7zQ1OyH2-w7Lo0KqKc9Fj6"
+        payload = {
+            'secret': secret_key,
+            'response': recaptcha_response
+        }
+
+        # Overenie reCAPTCHA
+        response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=payload)
+        result = response.json()
+
+        if result['success']:
+            # Kontrola používateľa
+            user = User.query.filter_by(username=form.username.data).first()
+            if user:
+                hashed_input_password = hash_password(form.password.data, user.salt)
+                if hashed_input_password == user.password:
+                    login_user(user)
+                    return redirect(url_for('home'))
+
+            flash('Nesprávne prihlasovacie údaje. Skontrolujte, či je používateľské meno a heslo správne.', 'error')
+        else:
+            flash('Overenie reCAPTCHA zlyhalo. Skúste to znova.', 'error')
 
     return render_template('login.html', form=form)
 
