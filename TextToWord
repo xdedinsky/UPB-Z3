@@ -1,0 +1,13 @@
+ULOHA 2
+Na bezpečné ukladanie hesiel do databázy môžeme použiť kryptografické primitívy, ako sú hashovacie funkcie a soli. Implementácia bude zahŕňať:
+Generovanie soli:
+Sol je náhodný reťazec, ktorý sa pridáva k heslu pred hashovaním. Zabraňuje útokom pomocou predpočítaných tabuliek (rainbow tables).
+2. Hashovanie hesla:
+Použijeme bezpečnú hashovaciu funkciu, ako je SHA-256, na vytvorenie hash hodnoty hesla spolu so soľou.
+Uloženie:
+Uložíme hash hesla a soľ do databázy.
+Tu je príklad implementácie:
+Zdôvodnenie:
+Sol: Zabezpečuje, že aj rovnaké heslá budú mať rôzne hash hodnoty, čím sa zvyšuje bezpečnosť.
+Hashovanie: Použitie SHA-256 zabezpečuje, že heslo je transformované na pevnú dĺžku, čo je ťažké zvrátiť.
+Bezpečnosť: Kombinácia soli a hashovania chráni heslá pred bežnými útokmi, ako sú útoky hrubou silou a slovníkové útoky.
