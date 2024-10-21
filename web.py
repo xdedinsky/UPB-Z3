@@ -9,6 +9,7 @@ import requests
 import re
 import os
 import hashlib          
+import difflib
 
 app = Flask(__name__)
 
@@ -67,6 +68,15 @@ def generate_salt():
 def hash_password(password, salt):
     return hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
 
+def is_common_password(password):
+    try:
+        with open('10k-most-common-passwords.txt', 'r') as file:
+            common_passwords = file.read().splitlines()
+        return password in common_passwords
+    except FileNotFoundError:
+        print("Súbor so zoznamom bežných hesiel sa nenašiel.")
+        return False
+    
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[InputRequired()])
     password = PasswordField('Password', validators=[InputRequired()])
@@ -78,6 +88,27 @@ class RegisterForm(FlaskForm):
     password = PasswordField('Password', validators=[InputRequired(), password_complexity_check])
     confirm_password = PasswordField('Confirm Password', validators=[InputRequired(), EqualTo('password')])
     submit = SubmitField('Register')
+
+    def validate_password(self, field):
+        password = field.data
+        username = self.username.data
+        
+        # Kontrola, či je heslo podobné používateľskému menu (napr. 70 % a viac podobnosti)
+        similarity = difflib.SequenceMatcher(None, username.lower(), password.lower()).ratio()
+        if similarity > 0.7:  
+            raise ValidationError('Heslo je príliš podobné používateľskému menu. Zvoľte si odlišnejšie heslo.')
+        
+        # Kontrola, či heslo nie je moc podobne s bežnými heslami
+        with open('10k-most-common-passwords.txt', 'r') as file:
+                    common_passwords = file.read().splitlines()
+        for common_password in common_passwords:
+            similarity = difflib.SequenceMatcher(None, common_password, password).ratio()
+            if similarity > 0.7:
+                raise ValidationError('Heslo je príliš podobné bežnému heslu. Zvoľte si odlišnejšie heslo.')
+
+        # Kontrola, či heslo nie je medzi bežnými heslami
+        if is_common_password(password):
+            raise ValidationError('Heslo je príliš bežné. Zvoľte si silnejšie heslo.')
 
 
 @app.route('/')
