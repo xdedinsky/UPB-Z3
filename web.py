@@ -95,12 +95,14 @@ class RegisterForm(FlaskForm):
         
         # Kontrola, či je heslo podobné používateľskému menu (napr. 70 % a viac podobnosti)
         similarity = difflib.SequenceMatcher(None, username.lower(), password.lower()).ratio()
+
         if similarity > 0.7:  
             raise ValidationError('Heslo je príliš podobné používateľskému menu. Zvoľte si odlišnejšie heslo.')
         
         # Kontrola, či heslo nie je moc podobne s bežnými heslami
         with open('10k-most-common-passwords.txt', 'r') as file:
                     common_passwords = file.read().splitlines()
+                    
         for common_password in common_passwords:
             similarity = difflib.SequenceMatcher(None, common_password, password).ratio()
             if similarity > 0.7:
@@ -124,6 +126,7 @@ def login():
     form = LoginForm()
 
     if form.validate_on_submit():
+
         recaptcha_response = request.form['g-recaptcha-response']
         secret_key = "6LdwCmcqAAAAAGftjX7zQ1OyH2-w7Lo0KqKc9Fj6"
         payload = {
@@ -131,12 +134,12 @@ def login():
             'response': recaptcha_response
         }
 
-        # Overenie reCAPTCHA
         response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=payload)
         result = response.json()
 
         if result['success']:
-            # Kontrola používateľa
+            # Pokračuje overenie prihlasovacích údajov
+
             user = User.query.filter_by(username=form.username.data).first()
             if user:
                 hashed_input_password = hash_password(form.password.data, user.salt)
